@@ -32,8 +32,8 @@ class EmbeddingService:
     MODEL = settings.embedding_model
     DIMENSIONS = settings.embedding_dimensions
     BATCH_SIZE = 10           # Reduced to avoid rate limits
-    MAX_RETRIES = 6
-    RETRY_DELAY = 2.0         # Base delay in seconds (doubles each retry, max ~60s)
+    MAX_RETRIES = 2
+    RETRY_DELAY = 1.0         # Base delay in seconds (doubles each retry, max ~60s)
     INTER_BATCH_DELAY = 0.5   # Delay between batches to stay under RPM limit
 
     def __init__(self):
@@ -97,19 +97,15 @@ class EmbeddingService:
             if attempt >= self.MAX_RETRIES:
                 logger.error(f"Rate limit exceeded after {self.MAX_RETRIES} retries. Giving up.")
                 raise
-            # Exponential backoff capped at 60 seconds
-            delay = min(self.RETRY_DELAY * (2 ** attempt), 60.0)
+            # Check if it's a hard quota error
+            error_msg = str(e).lower()
+            if "quota" in error_msg or "insufficient" in error_msg:
+                logger.error("OpenAI API out of quota. Failing fast.")
+                raise
+                
+            delay = min(self.RETRY_DELAY * (2 ** attempt), 10.0)
             logger.warning(f"Rate limited (429). Retrying in {delay:.1f}s (attempt {attempt + 1}/{self.MAX_RETRIES})")
             await asyncio.sleep(delay)
-            # If batch is large and we keep hitting limits, split into singles
-            if attempt >= 2 and len(texts) > 1:
-                logger.info(f"Splitting batch of {len(texts)} into individual requests to avoid rate limit")
-                results = []
-                for text in texts:
-                    r = await self._embed_with_retry([text], attempt=0)
-                    results.extend(r)
-                    await asyncio.sleep(3.0)  # 3s gap between individual calls
-                return results
             return await self._embed_with_retry(texts, attempt + 1)
 
         except APIError as e:
