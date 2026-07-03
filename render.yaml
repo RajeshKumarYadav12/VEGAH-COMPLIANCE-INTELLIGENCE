@@ -9,6 +9,8 @@ services:
     autoDeployTrigger: commit
     plan: starter
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.2
       - key: APP_NAME
         value: VEGAH Compliance Intelligence
       - key: APP_VERSION
