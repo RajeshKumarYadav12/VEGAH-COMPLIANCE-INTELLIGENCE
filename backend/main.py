@@ -20,7 +20,7 @@ from itertools import islice
 from datetime import datetime, timezone
 from typing import AsyncGenerator
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
@@ -79,13 +79,14 @@ async def startup_event():
 
 # ── Root endpoint ─────────────────────────────────────────────────────────────
 @app.get("/")
-async def root():
+async def root(request: Request):
     """Root endpoint — API documentation available at /docs"""
+    base_url = str(request.base_url).rstrip("/")
     return {
         "message": "VEGAH Compliance Intelligence API",
         "version": settings.app_version,
-        "docs": "http://localhost:8000/docs",
-        "health": "http://localhost:8000/health",
+        "docs": f"{base_url}/docs",
+        "health": f"{base_url}/health",
         "endpoints": {
             "POST /upload-capabilities": "Upload capability matrix (CSV/JSON)",
             "POST /process-rfp": "Process RFP with streaming response",
