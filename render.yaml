@@ -1,0 +1,66 @@
+services:
+  - type: web
+    name: vegah-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    plan: starter
+    envVars:
+      - key: APP_NAME
+        value: VEGAH Compliance Intelligence
+      - key: APP_VERSION
+        value: 1.0.0
+      - key: DEBUG
+        value: false
+      - key: ALLOWED_ORIGINS
+        value: https://vegah-frontend.onrender.com
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: QDRANT_URL
+        sync: false
+      - key: QDRANT_API_KEY
+        sync: false
+      - key: CAPABILITIES_COLLECTION
+        value: vegah_capabilities
+      - key: PROPOSALS_COLLECTION
+        value: vegah_proposals
+      - key: DEFAULT_REASONING_MODEL
+        value: claude
+      - key: CLAUDE_MODEL
+        value: claude-3-5-sonnet-20241022
+      - key: OPENAI_MODEL
+        value: gpt-4o
+      - key: GROQ_MODEL
+        value: llama-3.1-8b-instant
+      - key: EMBEDDING_MODEL
+        value: text-embedding-3-small
+      - key: EMBEDDING_DIMENSIONS
+        value: "1536"
+      - key: TOP_K_RESULTS
+        value: "5"
+      - key: CHUNK_SIZE
+        value: "512"
+      - key: CHUNK_OVERLAP
+        value: "64"
+  - type: web
+    name: vegah-frontend
+    runtime: node
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /
+    autoDeployTrigger: commit
+    plan: starter
+    envVars:
+      - key: BACKEND_API_URL
+        fromService:
+          name: vegah-backend
+          type: web
+          property: hostport
